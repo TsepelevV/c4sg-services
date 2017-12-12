@@ -1,83 +1,74 @@
 package org.c4sg.mapper;
 
+import org.c4sg.dto.ApplicantDTO;
+import org.c4sg.dto.CreateUserDTO;
 import org.c4sg.dto.UserDTO;
 import org.c4sg.entity.User;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
-import org.springframework.data.geo.Point;
 import org.springframework.stereotype.Component;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.PrecisionModel;
-import com.vividsolutions.jts.io.WKTReader;
-
 import java.lang.reflect.Type;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 
 @Component
 public class UserMapper extends ModelMapper {
 	
-	UserMapper() {
-	}
-	
-	/**
-	 * Map user entity into data transfer object
-	 * 
-	 * @param user User Entity
-	 * @return UserDTO
-	 */
+	private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
+			
 	public UserDTO getUserDtoFromEntity(User user){
-		//convert geometry object to a point
-		Geometry g = null;
-		com.vividsolutions.jts.geom.Point point = null;		
-		WKTReader reader = new WKTReader();
-		try {
-			g = reader.read(user.getLocation().toText());
-			point = (com.vividsolutions.jts.geom.Point) g;
-		}
-		catch (Exception e) {
-			//do nothing
-		}
-		//start mapping data into the dto
 		if (user == null)
 			return null;
 		
 		UserDTO userDTO = map(user, UserDTO.class);
-		//add mapping for location if point object is not null
-		if (point != null) {
-			org.springframework.data.geo.Point gp = new Point(point.getX(), point.getY());
-			userDTO.setLongitude(Double.toString(point.getX()));
-			userDTO.setLatitude(Double.toString(point.getY()));
-		}
-		userDTO.setDisplayFlag((user.getDisplayFlag() != null && user.getDisplayFlag().booleanValue()) ? "Y" : "N");
 		return userDTO;
 	}
 	
-	/**
-	 * Map user data transfer object into user entity
-	 * 
-	 * @param userDTO User Data Transfer object
-	 * @return User
-	 */	
 	public User getUserEntityFromDto(UserDTO userDTO){
 		User user = map(userDTO, User.class);
-		
-		if (userDTO.getLatitude() != null && userDTO.getLongitude() != null){
-			GeometryFactory gf = new GeometryFactory(new PrecisionModel(PrecisionModel.FLOATING));
-			Coordinate coordinate = new Coordinate(Double.parseDouble(userDTO.getLongitude()),
-					Double.parseDouble(userDTO.getLatitude()));
-			com.vividsolutions.jts.geom.Point point = gf.createPoint(coordinate);	
-			user.setLocation(point);			
-		}
-		user.setDisplayFlag(Boolean.valueOf(userDTO.getDisplayFlag()));
 		return user;
 	}
 
 	public List<UserDTO> getDtosFromEntities(List<User> projects){
 		Type listTypeDTO = new TypeToken<List<UserDTO>>() {}.getType();
 		return map(projects, listTypeDTO);
+	}
+	
+	public User getUserEntityFromCreateUserDto(CreateUserDTO createUserDTO) {
+		return map(createUserDTO, User.class);
+	}
+	
+	public List<ApplicantDTO> getApplicantDTOs(List<Object[]> applicants) {
+		
+		List<ApplicantDTO> applicantList = new ArrayList<>();
+		Iterator<Object[]> iter = applicants.iterator();
+		while (iter.hasNext()) {
+			Object[] o = iter.next();
+			ApplicantDTO applicant = new ApplicantDTO();
+			applicant.setUserId((Integer)o[0]);
+			applicant.setProjectId((Integer)o[1]);
+			applicant.setFirstName((String)o[2]);
+			applicant.setLastName((String)o[3]);
+			applicant.setTitle((String)o[4]);
+			applicant.setApplicationStatus(String.valueOf(o[5]));
+			if (o[6] != null) {
+				applicant.setAppliedTime((Date)o[6]);				
+			} 	
+			if (o[7] != null) {
+				applicant.setAcceptedTime((Date) o[7]);				
+			} 	
+			if (o[8] != null) {
+				applicant.setDeclinedTime((Date) o[8]);				
+			} 	
+			
+			applicantList.add(applicant);
+		}
+		return applicantList;
 	}
 }

@@ -39,3 +39,8 @@ bin/
 .factorypath
 .settings
 .springBeans
+
+spring.log
+spring.log.1
+spring.log.2
+
